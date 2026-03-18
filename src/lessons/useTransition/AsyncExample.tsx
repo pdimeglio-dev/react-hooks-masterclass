@@ -56,8 +56,23 @@ export function AsyncExample() {
 
   const handleSearch = () => {
     // 🚀 Async startTransition (React 19)
-    // isPending becomes true immediately and stays true until
-    // the async function resolves AND React finishes rendering.
+    //
+    // The callback is marked `async` because it uses `await` inside —
+    // you can't use `await` without `async` (JavaScript requirement).
+    //
+    // Every `async` function implicitly returns a Promise (here, Promise<void>).
+    // React 19's startTransition uses that returned Promise to track when the
+    // async work is done:
+    //
+    //   1. startTransition calls the async callback
+    //   2. The callback hits `await` and returns a *pending* Promise to startTransition
+    //   3. React keeps isPending = true while that Promise is pending
+    //   4. When fakeFetchUsers resolves, execution resumes — setUsers & setHasSearched run
+    //   5. The Promise resolves → React finishes rendering → isPending becomes false
+    //
+    // In React 18, startTransition ignored the returned Promise (signature was
+    // `(callback: () => void) => void`). React 19 changed it to:
+    // `(callback: () => void | Promise<void>) => void`
     startTransition(async () => {
       const results = await fakeFetchUsers(query);
       setUsers(results);
